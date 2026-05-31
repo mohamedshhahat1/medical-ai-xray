@@ -16,10 +16,34 @@ import torch
 MODEL_ARCH = "resnet18"
 
 # Number of output classes
-NUM_CLASSES = 2  # Normal, Pneumonia (expand for multi-class)
+NUM_CLASSES = 4  # Normal, Pneumonia, Tuberculosis, COVID
 
-# Class names (order must match model output)
-CLASS_NAMES = ["Normal", "Pneumonia"]
+# Class names (order must match model output / folder names)
+CLASS_NAMES = ["COVID", "Normal", "Pneumonia", "Tuberculosis"]
+
+# Class descriptions (for UI display)
+CLASS_INFO = {
+    "Normal": {
+        "description": "No significant abnormality detected",
+        "severity": "none",
+        "color": "#66bb6a",
+    },
+    "Pneumonia": {
+        "description": "Lung infection causing inflammation in air sacs",
+        "severity": "moderate",
+        "color": "#ffa726",
+    },
+    "Tuberculosis": {
+        "description": "Bacterial infection (Mycobacterium tuberculosis)",
+        "severity": "high",
+        "color": "#ef5350",
+    },
+    "COVID": {
+        "description": "COVID-19 related lung patterns (ground-glass opacities)",
+        "severity": "high",
+        "color": "#ab47bc",
+    },
+}
 
 # Input image size (model expects this resolution)
 IMAGE_SIZE = 224

@@ -6,7 +6,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](Dockerfile)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-A **production-ready** deep learning system for chest X-ray classification. Uses transfer learning (ResNet/DenseNet) to detect pneumonia from X-ray images with Grad-CAM explainability.
+A **production-ready** deep learning system for chest X-ray classification. Uses transfer learning (ResNet/DenseNet) to detect multiple lung conditions — **Pneumonia, Tuberculosis, COVID-19** — from X-ray images with Grad-CAM explainability.
 
 ---
 
@@ -22,7 +22,8 @@ A **production-ready** deep learning system for chest X-ray classification. Uses
 
 ## 🎯 Features
 
-- 🧠 **Transfer Learning** — ResNet18/50, DenseNet121 pretrained on ImageNet
+- 🧠 **Multi-Disease Classification** — Normal, Pneumonia, Tuberculosis, COVID-19
+- 🚀 **Transfer Learning** — ResNet18/50, DenseNet121 pretrained on ImageNet
 - 🚀 **FastAPI Backend** — REST API for real-time X-ray predictions
 - 🔬 **Grad-CAM Visualization** — Shows where the model focuses (explainability)
 - ⚖️ **Class Imbalance Handling** — Weighted loss + oversampling for fair training
@@ -208,7 +209,7 @@ This ensures the model doesn't just predict "Pneumonia" for everything.
 | PPV | ~97% | Positive predictive value |
 | NPV | ~93% | Negative predictive value |
 
-> *Results based on Kaggle Chest X-Ray Pneumonia dataset with ResNet18.*
+> *Results based on COVID-19 Radiography Database with ResNet18 (4 classes).*
 
 ---
 
@@ -239,9 +240,10 @@ This ensures the model doesn't just predict "Pneumonia" for everything.
 - **Augmentation**: Rotation ±15°, horizontal flip, brightness/contrast, Gaussian blur
 
 ### Data
-- **Source**: [Kaggle Chest X-Ray Pneumonia](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)
-- **Training**: ~5,200 images (Normal + Pneumonia)
-- **Validation**: ~600 images
+- **Source**: [COVID-19 Radiography Database](https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database)
+- **Classes**: Normal, Pneumonia, Tuberculosis, COVID-19
+- **Training**: ~16,000+ images (4 classes)
+- **Validation**: ~4,000 images
 - **Auto-download**: Runs automatically on first training
 
 ---
@@ -265,24 +267,28 @@ The dataset downloads automatically when you run `python training/train.py`.
 **Manual setup (alternative):**
 
 ```bash
-# Option 1: Kaggle CLI
-kaggle datasets download -d paultimothymooney/chest-xray-pneumonia
-unzip chest-xray-pneumonia.zip -d data/raw/
+# Option 1: Kaggle CLI (multi-disease dataset)
+kaggle datasets download -d tawsifurrahman/covid19-radiography-database
+unzip covid19-radiography-database.zip -d data/_download/
 
 # Option 2: Direct download
-# Visit: https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia
-# Extract to data/raw/train/ and data/raw/val/
+# Visit: https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database
+# The script auto-organizes into train/val splits
 ```
 
 **Expected structure:**
 ```
 data/raw/
 ├── train/
-│   ├── Normal/      (1,341 images)
-│   └── Pneumonia/   (3,875 images)
+│   ├── COVID/           (~2,700 images)
+│   ├── Normal/          (~8,000 images)
+│   ├── Pneumonia/       (~4,600 images)
+│   └── Tuberculosis/    (~1,400 images)
 └── val/
-    ├── Normal/      (234 images)
-    └── Pneumonia/   (390 images)
+    ├── COVID/
+    ├── Normal/
+    ├── Pneumonia/
+    └── Tuberculosis/
 ```
 
 ---

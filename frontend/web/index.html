@@ -102,7 +102,9 @@
         .result-label { color: #78909c; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .result-value { font-size: 2.5rem; font-weight: 700; }
         .result-value.normal { color: #66bb6a; }
-        .result-value.pneumonia { color: #ef5350; }
+        .result-value.pneumonia { color: #ffa726; }
+        .result-value.tuberculosis { color: #ef5350; }
+        .result-value.covid { color: #ab47bc; }
         .result-confidence { color: #90a4ae; font-size: 1rem; margin-top: 4px; }
 
         /* Probabilities */
@@ -112,7 +114,9 @@
         .prob-bar-bg { flex: 1; height: 24px; background: rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; }
         .prob-bar { height: 100%; border-radius: 12px; transition: width 0.6s ease; }
         .prob-bar.normal { background: linear-gradient(90deg, #66bb6a, #81c784); }
-        .prob-bar.pneumonia { background: linear-gradient(90deg, #ef5350, #e57373); }
+        .prob-bar.pneumonia { background: linear-gradient(90deg, #ffa726, #ffb74d); }
+        .prob-bar.tuberculosis { background: linear-gradient(90deg, #ef5350, #e57373); }
+        .prob-bar.covid { background: linear-gradient(90deg, #ab47bc, #ba68c8); }
         .prob-pct { font-size: 0.85rem; width: 50px; color: #b0bec5; }
 
         /* Heatmap */
@@ -206,6 +210,8 @@
                     <div class="result-label">Diagnosis</div>
                     <div class="result-value" id="resultDiagnosis">—</div>
                     <div class="result-confidence" id="resultConfidence"></div>
+                    <div class="result-confidence" id="resultDescription" style="margin-top:8px; font-size:0.85rem;"></div>
+                    <div class="result-confidence" id="resultSeverity" style="margin-top:4px; font-weight:600;"></div>
                 </div>
 
                 <!-- Probabilities Card -->
@@ -377,19 +383,33 @@
             const diagnosis = data.prediction || 'Unknown';
             const confidence = data.confidence || 0;
             const probs = data.probabilities || {};
+            const description = data.description || '';
+            const severity = data.severity || '';
 
-            // Diagnosis
+            // Diagnosis with color
             const diagEl = document.getElementById('resultDiagnosis');
             diagEl.textContent = diagnosis;
-            diagEl.className = 'result-value ' + (diagnosis.toLowerCase() === 'normal' ? 'normal' : 'pneumonia');
+            diagEl.className = 'result-value ' + diagnosis.toLowerCase();
             document.getElementById('resultConfidence').textContent = `Confidence: ${(confidence * 100).toFixed(1)}%`;
 
-            // Probability bars
+            // Description & severity
+            document.getElementById('resultDescription').textContent = description;
+            const sevEl = document.getElementById('resultSeverity');
+            if (severity && severity !== 'none') {
+                const sevColors = { low: '#66bb6a', moderate: '#ffa726', high: '#ef5350' };
+                sevEl.textContent = `Severity: ${severity.toUpperCase()}`;
+                sevEl.style.color = sevColors[severity] || '#90a4ae';
+            } else {
+                sevEl.textContent = '';
+            }
+
+            // Probability bars (sorted by probability)
             const probBars = document.getElementById('probBars');
             probBars.innerHTML = '';
-            for (const [name, prob] of Object.entries(probs)) {
+            const sorted = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+            for (const [name, prob] of sorted) {
                 const pct = (prob * 100).toFixed(1);
-                const cls = name.toLowerCase() === 'normal' ? 'normal' : 'pneumonia';
+                const cls = name.toLowerCase();
                 probBars.innerHTML += `
                     <div class="prob-row">
                         <span class="prob-name">${name}</span>

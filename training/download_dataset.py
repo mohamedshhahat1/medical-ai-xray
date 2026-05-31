@@ -32,9 +32,14 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'
 from config import DATA_DIR
 
 
-# Kaggle dataset identifier
-KAGGLE_DATASET = "paultimothymooney/chest-xray-pneumonia"
-DATASET_URL = "https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia"
+# Kaggle dataset identifiers (multi-disease)
+# Primary: COVID-19 Radiography Database (4 classes)
+KAGGLE_DATASET = "tawsifurrahman/covid19-radiography-database"
+DATASET_URL = "https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database"
+
+# Alternative datasets:
+# - "paultimothymooney/chest-xray-pneumonia" (2-class: Normal, Pneumonia)
+# - "nih-chest-xrays/data" (14-class, large)
 
 # Expected output structure
 TRAIN_DIR = os.path.join(DATA_DIR, "raw", "train")
@@ -185,28 +190,44 @@ def _organize_dataset():
     """
     Organize downloaded files into the expected directory structure.
 
-    The Kaggle dataset extracts with an extra folder level:
-        chest_xray/chest_xray/train/...
-        chest_xray/train/...
+    Handles multiple dataset formats:
+    1. COVID-19 Radiography Database: COVID/Normal/Lung_Opacity/Viral Pneumonia/images/
+    2. Chest X-Ray Pneumonia: chest_xray/train/Normal|Pneumonia/
 
-    This normalizes it to:
+    Normalizes to:
+        data/raw/train/COVID/
         data/raw/train/Normal/
         data/raw/train/Pneumonia/
-        data/raw/val/Normal/
-        data/raw/val/Pneumonia/
+        data/raw/train/Tuberculosis/
+        data/raw/val/<same classes>/
     """
     print("\n  Organizing dataset structure...")
 
     download_dir = os.path.join(DATA_DIR, "_download")
     raw_dir = os.path.join(DATA_DIR, "raw")
 
-    # Find the extracted chest_xray folder (may be nested)
-    source_dir = None
+    # Strategy 1: COVID-19 Radiography Database format
+    # Has folders: COVID/images/, Normal/images/, Lung_Opacity/images/, Viral Pneumonia/images/
+    covid_classes = {'COVID': 'COVID', 'Normal': 'Normal',
+                     'Lung_Opacity': 'Pneumonia', 'Viral Pneumonia': 'Pneumonia'}
+
+    found_covid_format = False
     for root, dirs, files in os.walk(download_dir):
-        if 'train' in dirs and 'test' in dirs:
+        if 'COVID' in dirs and 'Normal' in dirs:
+            found_covid_format = True
             source_dir = root
             break
-        if 'train' in dirs and 'val' in dirs:
+
+    if found_covid_format:
+        print("  Detected: COVID-19 Radiography Database format")
+        _organize_covid_format(source_dir, covid_classes)
+        _cleanup(download_dir)
+        return
+
+    # Strategy 2: Standard train/val/test folder structure
+    source_dir = None
+    for root, dirs, files in os.walk(download_dir):
+        if 'train' in dirs and ('test' in dirs or 'val' in dirs):
             source_dir = root
             break
 
@@ -241,6 +262,68 @@ def _organize_dataset():
         pass
 
     print("  ✓ Dataset organized successfully!")
+
+
+def _organize_covid_format(source_dir, class_mapping):
+    """
+    Organize COVID-19 Radiography Database into train/val splits.
+
+    The dataset has all images in class folders (no train/val split),
+    so we create an 80/20 split.
+
+    Args:
+        source_dir (str): Root of extracted dataset.
+        class_mapping (dict): Maps folder names to our class names.
+    """
+    import random
+    random.seed(42)
+
+    for src_folder, target_class in class_mapping.items():
+        src_path = os.path.join(source_dir, src_folder)
+
+        # Some datasets have images in a subfolder called 'images'
+        images_subfolder = os.path.join(src_path, "images")
+        if os.path.isdir(images_subfolder):
+            src_path = images_subfolder
+
+        if not os.path.isdir(src_path):
+            continue
+
+        # Get all image files
+        images = [f for f in os.listdir(src_path)
+                  if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+
+        if not images:
+            continue
+
+        random.shuffle(images)
+        split_idx = int(len(images) * 0.8)
+        train_imgs = images[:split_idx]
+        val_imgs = images[split_idx:]
+
+        # Copy to train/val
+        for split_name, img_list in [("train", train_imgs), ("val", val_imgs)]:
+            dest_dir = os.path.join(DATA_DIR, "raw", split_name, target_class)
+            os.makedirs(dest_dir, exist_ok=True)
+            for img_name in img_list:
+                src_file = os.path.join(src_path, img_name)
+                dst_file = os.path.join(dest_dir, img_name)
+                if not os.path.exists(dst_file):
+                    shutil.copy2(src_file, dst_file)
+
+        print(f"    {src_folder} → {target_class}: "
+              f"{len(train_imgs)} train + {len(val_imgs)} val")
+
+    print("  ✓ Dataset organized (80/20 train/val split)")
+
+
+def _cleanup(download_dir):
+    """Remove temporary download directory."""
+    try:
+        shutil.rmtree(download_dir)
+        print("  ✓ Cleaned up temporary download files")
+    except Exception:
+        pass
 
 
 def _print_stats():

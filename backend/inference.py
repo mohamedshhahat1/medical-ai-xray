@@ -10,7 +10,7 @@ import os
 import torch
 import torch.nn.functional as F
 
-from config import DEVICE, CLASS_NAMES, MODEL_PATH, NUM_CLASSES, MODEL_ARCH
+from config import DEVICE, CLASS_NAMES, MODEL_PATH, NUM_CLASSES, MODEL_ARCH, CLASS_INFO
 from model import create_model, load_trained_model
 from utils.preprocess import preprocess_image, preprocess_pil_image
 from utils.visualize import GradCAM
@@ -83,6 +83,8 @@ def predict_image(image_bytes):
         "confidence": round(conf, 4),
         "probabilities": prob_dict,
         "class_index": predicted_idx.item(),
+        "description": CLASS_INFO.get(predicted_class, {}).get("description", ""),
+        "severity": CLASS_INFO.get(predicted_class, {}).get("severity", "unknown"),
     }
 
 
