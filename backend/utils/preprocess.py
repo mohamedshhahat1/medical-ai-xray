@@ -40,13 +40,41 @@ def preprocess_image(image_bytes):
     """
     Preprocess raw image bytes for model inference.
 
+    Supports both standard image formats (PNG, JPG) and DICOM files.
+
     Args:
         image_bytes (bytes): Raw image file bytes.
 
     Returns:
         torch.Tensor: Preprocessed tensor of shape (1, 3, 224, 224).
     """
-    image = Image.open(io.BytesIO(image_bytes))
+    # Check if it's a DICOM file (DICOM magic bytes: "DICM" at offset 128)
+    is_dicom = False
+    if len(image_bytes) > 132:
+        is_dicom = image_bytes[128:132] == b'DICM'
+
+    if is_dicom:
+        # Handle DICOM file
+        from utils.dicom_handler import PYDICOM_AVAILABLE
+        if PYDICOM_AVAILABLE:
+            import tempfile
+            from utils.dicom_handler import dicom_to_pil
+            # Write to temp file (pydicom reads from file)
+            with tempfile.NamedTemporaryFile(suffix='.dcm', delete=False) as tmp:
+                tmp.write(image_bytes)
+                tmp_path = tmp.name
+            try:
+                image = dicom_to_pil(tmp_path).convert("RGB")
+            finally:
+                os.remove(tmp_path)
+        else:
+            raise ValueError(
+                "DICOM file detected but pydicom not installed.\n"
+                "Install with: pip install pydicom pylibjpeg pylibjpeg-libjpeg"
+            )
+    else:
+        # Standard image format
+        image = Image.open(io.BytesIO(image_bytes))
 
     # Convert grayscale X-ray to 3-channel (required by pretrained models)
     if image.mode == "L":

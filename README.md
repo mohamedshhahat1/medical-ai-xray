@@ -32,6 +32,7 @@ A **production-ready** deep learning system for chest X-ray classification. Uses
 - 🏥 **Multi-Hospital Validation** — Cross-dataset generalization testing (6 hospitals)
 - 📱 **Flutter-Ready** — Frontend integration documentation
 - 🐳 **Docker + GPU** — One-command deployment with NVIDIA GPU support
+- 🏥 **DICOM Support** — Native hospital image format (real clinical data)
 - 📈 **Cosine Annealing LR** — Learning rate scheduling with warm restarts
 - 🧪 **Unit + Integration Tests** — Model and API test suites
 
@@ -50,6 +51,7 @@ medical-ai-xray/
 │   ├── requirements.txt            # Python dependencies
 │   ├── utils/
 │   │   ├── preprocess.py           # Image preprocessing pipeline
+│   │   ├── dicom_handler.py        # DICOM file loading & metadata
 │   │   └── visualize.py            # Grad-CAM heatmap visualization
 │   ├── models/
 │   │   └── best_model.pth          # Trained model weights
@@ -221,6 +223,8 @@ This ensures the model doesn't just predict "Pneumonia" for everything.
 |--------|----------|-------------|
 | `POST` | `/predict` | Upload X-ray image → get diagnosis |
 | `POST` | `/predict/gradcam` | Upload X-ray → get heatmap overlay image |
+| `POST` | `/report` | Upload X-ray → downloadable PDF report |
+| `POST` | `/dicom/metadata` | Upload .dcm → extract patient/study metadata |
 | `GET` | `/health` | Server status + model loaded check |
 | `GET` | `/classes` | List diagnostic classes |
 | `GET` | `/docs` | Interactive Swagger API documentation |

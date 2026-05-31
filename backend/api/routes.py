@@ -109,6 +109,40 @@ async def get_classes():
     return {"classes": CLASS_NAMES, "count": len(CLASS_NAMES)}
 
 
+@router.post("/dicom/metadata")
+async def get_dicom_metadata(file: UploadFile = File(...)):
+    """
+    Extract metadata from a DICOM file.
+
+    Returns patient info (anonymized), study details, and technical parameters.
+    Useful for displaying scan info alongside AI predictions.
+    """
+    try:
+        from utils.dicom_handler import PYDICOM_AVAILABLE, get_metadata
+        if not PYDICOM_AVAILABLE:
+            raise HTTPException(status_code=501,
+                                detail="DICOM support requires pydicom. Install: pip install pydicom")
+
+        import tempfile
+        contents = await file.read()
+
+        with tempfile.NamedTemporaryFile(suffix='.dcm', delete=False) as tmp:
+            tmp.write(contents)
+            tmp_path = tmp.name
+
+        try:
+            metadata = get_metadata(tmp_path, anonymize=True)
+        finally:
+            os.remove(tmp_path)
+
+        return {"metadata": metadata}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read DICOM: {str(e)}")
+
+
 @router.post("/report")
 async def generate_pdf_report(file: UploadFile = File(...),
                               patient_id: str = None, patient_name: str = None,

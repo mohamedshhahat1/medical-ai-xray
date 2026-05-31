@@ -287,8 +287,19 @@
             const reader = new FileReader();
             reader.onload = ev => {
                 uploadedBase64 = ev.target.result;
-                document.getElementById('previewImage').src = uploadedBase64;
-                document.getElementById('previewFilename').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+
+                // For DICOM files, show metadata instead of image preview
+                const isDicom = file.name.toLowerCase().endsWith('.dcm') || file.name.toLowerCase().endsWith('.dicom');
+                if (isDicom) {
+                    document.getElementById('previewImage').src = '';
+                    document.getElementById('previewFilename').textContent = '🏥 DICOM: ' + file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+                    // Fetch DICOM metadata
+                    fetchDicomMetadata(file);
+                } else {
+                    document.getElementById('previewImage').src = uploadedBase64;
+                    document.getElementById('previewFilename').textContent = file.name + ' (' + (file.size / 1024).toFixed(0) + ' KB)';
+                }
+
                 document.getElementById('previewSection').classList.add('active');
                 document.getElementById('uploadZone').style.display = 'none';
                 document.getElementById('analyzeBtn').disabled = false;
@@ -299,6 +310,24 @@
                 analyze();
             };
             reader.readAsDataURL(file);
+        }
+
+        async function fetchDicomMetadata(file) {
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const resp = await fetch('/dicom/metadata', { method: 'POST', body: formData });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const meta = data.metadata;
+                    let info = '🏥 DICOM | ';
+                    if (meta.modality) info += meta.modality + ' | ';
+                    if (meta.body_part) info += meta.body_part + ' | ';
+                    if (meta.manufacturer) info += meta.manufacturer + ' | ';
+                    if (meta.institution) info += meta.institution;
+                    document.getElementById('previewFilename').textContent = info;
+                }
+            } catch (e) { /* metadata fetch is optional */ }
         }
 
         // =============================================================
