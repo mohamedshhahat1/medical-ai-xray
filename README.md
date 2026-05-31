@@ -474,15 +474,97 @@ See [`deploy/README.md`](deploy/README.md) for full deployment guide.
 
 ## 🧪 Testing
 
+### Unit & Integration Tests
 ```bash
-# Model tests
-python tests/test_model.py
+python tests/test_model.py    # Model architecture tests
+python tests/test_api.py      # API endpoint tests
+```
 
-# API tests
-python tests/test_api.py
+### 📊 Full Evaluation (All Validation Images)
 
-# Multi-hospital validation
+Tests ALL images in `data/raw/val/` and gives medical metrics:
+
+```bash
+python training/evaluate.py
+```
+
+**Output:**
+```
+  Overall Accuracy: 93.5%
+
+  PER-CLASS MEDICAL METRICS (One-vs-Rest)
+  Class          Sensitivity  Specificity     PPV      NPV
+  COVID               0.9500       0.9700  0.9400   0.9800
+  Normal              0.9100       0.9300  0.9000   0.9500
+  Pneumonia           0.9400       0.9600  0.9500   0.9400
+
+  Macro AUC-ROC (one-vs-rest): 0.9650
+```
+
+### 📁 Batch Test a Folder (Predict All Images)
+
+Test every image in a folder and see individual results:
+
+```bash
+python -c "
+import os, sys
+sys.path.insert(0, 'backend')
+from inference import load_model, predict_image
+
+load_model()
+
+folder = 'path/to/your/xray/folder'  # ← Change this
+correct = 0
+total = 0
+for img in os.listdir(folder):
+    if not img.endswith(('.png', '.jpg', '.jpeg')): continue
+    with open(os.path.join(folder, img), 'rb') as f:
+        result = predict_image(f.read())
+    total += 1
+    print(f'  {img} → {result[\"prediction\"]} ({result[\"confidence\"]*100:.1f}%)')
+
+print(f'\n  Total tested: {total} images')
+"
+```
+
+### 📡 Batch Test via API (cURL)
+
+Test a folder of images using the running server:
+
+```bash
+# Start server first: cd backend && uvicorn app:app --port 8000
+
+# Test all images in a folder
+for img in data/raw/val/COVID/*.png; do
+  echo -n "$(basename $img) → "
+  curl -s -X POST "http://localhost:8000/predict" -F "file=@$img" | \
+    python3 -c "import sys,json;d=json.load(sys.stdin);print(f\"{d['prediction']} ({d['confidence']*100:.1f}%)\")"
+done
+```
+
+**Windows PowerShell:**
+```powershell
+# Test all images in a folder
+Get-ChildItem "data\raw\val\COVID\*.png" | ForEach-Object {
+    $result = Invoke-WebRequest -Method POST -Uri "http://localhost:8000/predict" `
+        -Form @{file = $_} | Select-Object -Expand Content | ConvertFrom-Json
+    Write-Host "$($_.Name) → $($result.prediction) ($([math]::Round($result.confidence*100,1))%)"
+}
+```
+
+### 🏥 Multi-Hospital Validation
+
+Test model on data from different hospitals to prove it generalizes:
+
+```bash
+# List all registered hospital datasets
 python training/validate_multi_hospital.py --list-datasets
+
+# Validate on your own hospital data
+python training/validate_multi_hospital.py --custom-dir path/to/hospital_images
+
+# Generate validation report
+python training/validate_multi_hospital.py --report
 ```
 
 ---
