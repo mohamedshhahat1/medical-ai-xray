@@ -1,0 +1,30 @@
+name: medical_ai_xray
+description: Medical AI X-Ray Analysis — Chest X-ray classification with deep learning
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  image_picker: ^1.0.7
+  path_provider: ^2.1.2
+  open_file: ^3.3.2
+  lottie: ^3.1.0
+  google_fonts: ^6.1.0
+  shimmer: ^3.0.0
+  percent_indicator: ^4.2.3
+  share_plus: ^7.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/animations/
