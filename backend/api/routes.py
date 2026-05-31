@@ -107,3 +107,64 @@ async def health_check():
 async def get_classes():
     """Return the list of diagnostic classes."""
     return {"classes": CLASS_NAMES, "count": len(CLASS_NAMES)}
+
+
+@router.post("/report")
+async def generate_pdf_report(file: UploadFile = File(...),
+                              patient_id: str = None, patient_name: str = None,
+                              notes: str = None):
+    """
+    Generate a professional PDF report for an X-ray analysis.
+
+    Returns a downloadable PDF with:
+    - AI diagnosis and confidence
+    - Classification probabilities for all diseases
+    - Grad-CAM heatmap visualization
+    - Highlighted region description
+    - Medical disclaimer
+
+    Query params:
+        patient_id (str, optional): Patient identifier for the report.
+        patient_name (str, optional): Patient name.
+        notes (str, optional): Additional clinical notes.
+    """
+    from report_generator import generate_report
+    from PIL import Image as PILImage
+
+    try:
+        contents = await file.read()
+
+        # Run prediction
+        result = predict_image(contents)
+        if "error" in result:
+            raise HTTPException(status_code=503, detail=result["error"])
+
+        # Get Grad-CAM
+        _, heatmap_overlay = predict_with_gradcam(contents)
+
+        # Original image
+        original_img = PILImage.open(io.BytesIO(contents)).convert("RGB")
+
+        # Generate PDF
+        pdf_bytes = generate_report(
+            prediction=result,
+            original_image=original_img,
+            heatmap_image=heatmap_overlay,
+            patient_id=patient_id,
+            patient_name=patient_name,
+            notes=notes,
+        )
+
+        # Return PDF
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=xray_report_{result['prediction'].lower()}.pdf"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Report generation error: {str(e)}")

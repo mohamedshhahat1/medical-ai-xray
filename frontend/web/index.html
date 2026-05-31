@@ -236,6 +236,13 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Download Report Button -->
+            <div style="text-align:center; margin-top:20px;">
+                <button class="btn-analyze" id="reportBtn" onclick="downloadReport()" style="background:#7c4dff; font-size:0.95rem; padding:12px 32px;">
+                    📄 Download PDF Report
+                </button>
+            </div>
         </div>
 
         <!-- Pipeline -->
@@ -434,6 +441,36 @@
         // =============================================================
         function activate(id) { document.getElementById(id).classList.add('active'); }
         function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        async function downloadReport() {
+            if (!uploadedFile) return;
+            const btn = document.getElementById('reportBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Generating Report...';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', uploadedFile);
+
+                const resp = await fetch('/report', { method: 'POST', body: formData });
+                if (!resp.ok) throw new Error('Report generation failed');
+
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'xray_ai_report.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                btn.textContent = '✅ Report Downloaded!';
+                setTimeout(() => { btn.textContent = '📄 Download PDF Report'; }, 3000);
+            } catch (err) {
+                btn.textContent = '❌ Failed — ' + err.message;
+                setTimeout(() => { btn.textContent = '📄 Download PDF Report'; }, 3000);
+            }
+            btn.disabled = false;
+        }
     </script>
 </body>
 </html>
