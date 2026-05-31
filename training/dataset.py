@@ -53,16 +53,21 @@ def get_data_loaders(batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
     train_dir = os.path.join(DATA_DIR, "raw", "train")
     val_dir = os.path.join(DATA_DIR, "raw", "val")
 
-    # Validate directories exist
-    if not os.path.isdir(train_dir):
-        raise FileNotFoundError(
-            f"Training data not found at: {train_dir}\n"
-            f"Download a chest X-ray dataset and organize as:\n"
-            f"  {train_dir}/Normal/*.png\n"
-            f"  {train_dir}/Pneumonia/*.png\n\n"
-            f"Recommended dataset: Kaggle Chest X-Ray Pneumonia\n"
-            f"  https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia"
-        )
+    # Validate directories exist — auto-download if missing
+    if not os.path.isdir(train_dir) or not os.listdir(train_dir):
+        print("  📥 Dataset not found. Attempting automatic download...")
+        from download_dataset import download_chest_xray
+        success = download_chest_xray()
+        if not success:
+            raise FileNotFoundError(
+                f"Training data not found at: {train_dir}\n"
+                f"Automatic download failed. See instructions above.\n\n"
+                f"Or manually download from:\n"
+                f"  https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia\n"
+                f"And organize as:\n"
+                f"  {train_dir}/Normal/*.png\n"
+                f"  {train_dir}/Pneumonia/*.png"
+            )
 
     # Create datasets using ImageFolder (auto-detects classes from subfolders)
     train_dataset = datasets.ImageFolder(
