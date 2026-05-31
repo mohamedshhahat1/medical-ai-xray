@@ -265,6 +265,94 @@ load_model()
 
 ---
 
+## 📂 Dataset Setup & Training
+
+### Automatic (Recommended)
+
+If you have a Kaggle API key set up, just run:
+```bash
+python training/train.py --epochs 15
+```
+The dataset downloads and organizes automatically.
+
+### Manual Download
+
+1. Download from: https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database
+2. Extract the zip file
+3. Organize into this structure:
+
+```
+data/raw/
+│
+├── train/                    ← 80% of images (model learns from these)
+│   ├── COVID/                ← COVID-19 X-ray images
+│   │   ├── COVID-1.png
+│   │   ├── COVID-2.png
+│   │   └── ... (2,800+ images)
+│   ├── Normal/               ← Healthy chest X-rays
+│   │   ├── Normal-1.png
+│   │   └── ... (8,000+ images)
+│   └── Pneumonia/            ← Pneumonia X-rays (bacterial + viral)
+│       ├── Pneumonia-1.png
+│       └── ... (4,600+ images)
+│
+└── val/                      ← 20% of images (model is tested on these)
+    ├── COVID/                ← COVID validation images
+    │   └── ... (700+ images)
+    ├── Normal/               ← Normal validation images
+    │   └── ... (2,000+ images)
+    └── Pneumonia/            ← Pneumonia validation images
+        └── ... (1,100+ images)
+```
+
+### Why 80/20 Split?
+
+| Folder | Purpose | % | Why |
+|--------|---------|:-:|-----|
+| `train/` | Model learns patterns from these images | 80% | More data = better learning |
+| `val/` | Tests accuracy on images the model has **NEVER seen** | 20% | Proves the model generalizes, doesn't just memorize |
+
+> **Critical Rule:** Train and val images must be DIFFERENT images — never the same image in both folders. This prevents **data leakage** (the model memorizing answers instead of learning patterns).
+
+### How to split manually
+
+If your Kaggle download is all in one folder (no train/val split):
+
+```bash
+# Automatic: the download script does this for you (80/20 random split)
+python training/download_dataset.py
+
+# Or manually: move ~20% of each class folder to val/
+# Example: if COVID/ has 3,616 images:
+#   Move first 2,893 → train/COVID/  (80%)
+#   Move last 723   → val/COVID/     (20%)
+```
+
+### Train the Model
+
+```bash
+# CPU training (~15-20 minutes)
+python training/train.py --epochs 15 --batch-size 32
+
+# GPU training (~2 minutes) — if you have NVIDIA GPU
+python training/train.py --epochs 20 --batch-size 64 --arch resnet18
+
+# Use DenseNet121 (better accuracy, slower)
+python training/train.py --epochs 20 --arch densenet121
+```
+
+### What happens during training:
+
+```
+Epoch  1/15 | Loss: 0.85 | Train: 72.3% | Val: 68.5%   ← Learning starts
+Epoch  5/15 | Loss: 0.32 | Train: 89.1% | Val: 85.2%   ← Getting better
+Epoch 10/15 | Loss: 0.12 | Train: 96.4% | Val: 92.8%   ← Nearly converged
+Epoch 15/15 | Loss: 0.08 | Train: 98.1% | Val: 93.5%   ← Done!
+  ★ Best model saved: backend/models/best_model.pth
+```
+
+---
+
 ## 🎯 Usage
 
 ### Web UI (Recommended)
