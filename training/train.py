@@ -26,7 +26,7 @@ from config import (DEVICE, EPOCHS, LEARNING_RATE, BATCH_SIZE, WEIGHT_DECAY,
                     PATIENCE, MODEL_DIR, MODEL_ARCH, NUM_CLASSES)
 from model import create_model
 
-from dataset import get_data_loaders
+from dataset import get_data_loaders, compute_class_weights
 
 
 def train(epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE, arch=MODEL_ARCH):
@@ -65,8 +65,13 @@ def train(epochs=EPOCHS, batch_size=BATCH_SIZE, lr=LEARNING_RATE, arch=MODEL_ARC
     print(f"  Trainable: {trainable:,}")
     print()
 
-    # Loss, optimizer, scheduler
-    criterion = nn.CrossEntropyLoss()
+    # Loss (class-weighted to handle imbalance), optimizer, scheduler
+    print("  Computing class weights for imbalanced data...")
+    class_weights = compute_class_weights().to(DEVICE)
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
+    print(f"  ✓ Using weighted loss: {class_weights.cpu().tolist()}")
+    print()
+
     optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=WEIGHT_DECAY)
     scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(
         optimizer, T_0=5, T_mult=2, eta_min=1e-6
