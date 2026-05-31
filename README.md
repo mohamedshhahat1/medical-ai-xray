@@ -29,6 +29,7 @@ A **production-ready** deep learning system for chest X-ray classification. Uses
 - ⚖️ **Class Imbalance Handling** — Weighted loss + oversampling for fair training
 - 📥 **Auto Dataset Download** — Kaggle Chest X-Ray dataset downloads automatically
 - 📊 **Medical Metrics** — Sensitivity, specificity, AUC-ROC, PPV, NPV
+- 🏥 **Multi-Hospital Validation** — Cross-dataset generalization testing (6 hospitals)
 - 📱 **Flutter-Ready** — Frontend integration documentation
 - 🐳 **Docker + GPU** — One-command deployment with NVIDIA GPU support
 - 📈 **Cosine Annealing LR** — Learning rate scheduling with warm restarts
@@ -60,6 +61,7 @@ medical-ai-xray/
 │   ├── dataset.py                  # Data loading + class imbalance handling
 │   ├── download_dataset.py         # Auto-download from Kaggle
 │   ├── evaluate.py                 # Medical evaluation metrics
+│   ├── validate_multi_hospital.py  # Cross-hospital generalization testing
 │   └── transforms.py              # Safe medical image augmentation
 │
 ├── data/                           # 🔵 Dataset Storage
@@ -256,6 +258,70 @@ python tests/test_model.py
 
 # Run API tests
 python tests/test_api.py
+```
+
+---
+
+## 🏥 Multi-Hospital Validation
+
+A model trained on one hospital's data may fail on another due to equipment, protocol, and demographic differences. Multi-hospital validation proves generalization.
+
+```bash
+# Validate on all external datasets
+python training/validate_multi_hospital.py
+
+# Validate on a specific hospital's data
+python training/validate_multi_hospital.py --custom-dir data/external/montgomery
+
+# List all registered datasets
+python training/validate_multi_hospital.py --list-datasets
+
+# Save validation report
+python training/validate_multi_hospital.py --report
+```
+
+**Setup external datasets:**
+```
+data/external/
+├── montgomery/          # Montgomery County, USA (TB)
+│   ├── Normal/
+│   └── Tuberculosis/
+├── shenzhen/            # Shenzhen Hospital, China (TB)
+│   ├── Normal/
+│   └── Tuberculosis/
+├── guangzhou/           # Guangzhou, China (Pneumonia)
+│   ├── Normal/
+│   └── Pneumonia/
+└── stanford/            # CheXpert, Stanford (multi-class)
+    ├── Normal/
+    ├── Pneumonia/
+    └── ...
+```
+
+**Registered datasets for validation:**
+
+| Dataset | Institution | Country | Classes |
+|---------|------------|---------|---------|
+| COVID-19 Radiography | Qatar University | Bangladesh/Qatar | COVID, Normal, Pneumonia |
+| Chest X-Ray Pneumonia | Guangzhou Women & Children's | China | Normal, Pneumonia |
+| Montgomery TB | Dept. of Health & Human Services | USA | Normal, TB |
+| Shenzhen TB | Shenzhen No.3 Hospital | China | Normal, TB |
+| NIH ChestX-ray14 | NIH Clinical Center | USA | 14 pathologies |
+| CheXpert | Stanford University Hospital | USA | 14 pathologies |
+
+**Output example:**
+```
+══════════════════════════════════════════════════════════════
+  📋 MULTI-HOSPITAL VALIDATION SUMMARY
+══════════════════════════════════════════════════════════════
+  Dataset                             Accuracy    AUC-ROC     Samples
+  Montgomery TB (USA)                    91.3%     0.9450         138
+  Shenzhen TB (China)                    88.7%     0.9180         662
+  Guangzhou Pneumonia (China)            85.2%     0.9310        5800
+  
+  Mean Accuracy:  88.4% ± 3.1%
+  Assessment:     ✅ GOOD generalization (low variance)
+══════════════════════════════════════════════════════════════
 ```
 
 ---
