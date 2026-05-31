@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medical-ai-xray
+  labels:
+    app: medical-ai-xray
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: medical-ai-xray
+  template:
+    metadata:
+      labels:
+        app: medical-ai-xray
+    spec:
+      containers:
+      - name: medical-ai-xray
+        image: gcr.io/YOUR_PROJECT/medical-ai-xray:latest
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+            nvidia.com/gpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+            nvidia.com/gpu: "1"
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-t4
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medical-ai-xray-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: medical-ai-xray
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: medical-ai-xray-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: medical-ai-xray
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70

@@ -1,0 +1,13 @@
+{
+  "name": "medical-ai-xray",
+  "dockerImage": "your-dockerhub/medical-ai-xray:latest",
+  "gpu": "NVIDIA RTX A5000",
+  "gpuCount": 1,
+  "volumeInGb": 20,
+  "ports": "8000/http",
+  "env": {
+    "PYTHONUNBUFFERED": "1"
+  },
+  "startCommand": "",
+  "readme": "Medical AI X-Ray Analysis - Chest X-ray classification with Grad-CAM"
+}

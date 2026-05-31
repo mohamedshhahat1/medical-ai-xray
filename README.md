@@ -34,6 +34,7 @@ A **production-ready** deep learning system for chest X-ray classification. Uses
 - 🐳 **Docker + GPU** — One-command deployment with NVIDIA GPU support
 - 🏥 **DICOM Support** — Native hospital image format (real clinical data)
 - 📈 **Cosine Annealing LR** — Learning rate scheduling with warm restarts
+- ☁️ **Cloud Deployment** — AWS, GCP, RunPod configs + CI/CD (GitHub Actions)
 - 🧪 **Unit + Integration Tests** — Model and API test suites
 
 ---
@@ -89,6 +90,13 @@ medical-ai-xray/
 ├── docs/                           # 📚 Documentation
 │   └── architecture.md             # System architecture diagram
 │
+├── deploy/                         # ☁️ Cloud Deployment
+│   ├── README.md                   # Deployment guide (all platforms)
+│   ├── aws/                        # AWS ECS + SageMaker configs
+│   ├── gcp/                        # GCP Kubernetes + Vertex AI
+│   └── runpod/                     # RunPod serverless GPU
+│
+├── .github/workflows/deploy.yml    # 🔄 CI/CD auto-deployment
 ├── README.md
 ├── .gitignore
 ├── Dockerfile
