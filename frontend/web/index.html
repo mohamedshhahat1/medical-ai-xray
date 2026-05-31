@@ -159,7 +159,7 @@
         <!-- Header -->
         <div class="header">
             <h1>🏥 Medical AI — Chest X-Ray Analysis</h1>
-            <p class="subtitle">Upload a chest X-ray image to detect pneumonia using deep learning</p>
+            <p class="subtitle">Drop an X-ray image for instant AI diagnosis — real-time inference</p>
         </div>
         <div class="disclaimer">
             ⚠️ <strong>Educational purposes only.</strong> This system is NOT a medical device and NOT for clinical diagnosis. Always consult a qualified healthcare professional.
@@ -281,6 +281,9 @@
                 document.getElementById('analyzeBtn').disabled = false;
                 document.getElementById('results').classList.remove('active');
                 document.getElementById('errorMsg').classList.remove('active');
+
+                // Auto-analyze immediately (real-time inference)
+                analyze();
             };
             reader.readAsDataURL(file);
         }
