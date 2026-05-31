@@ -52,7 +52,7 @@ class GradCAM:
 
         if target_layer:
             target_layer.register_forward_hook(self._forward_hook)
-            target_layer.register_backward_hook(self._backward_hook)
+            target_layer.register_full_backward_hook(self._backward_hook)
 
     def _forward_hook(self, module, input, output):
         self.activations = output.detach()

@@ -25,7 +25,7 @@ Usage:
 
 import os
 import sys
-import zipfile
+
 import shutil
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'backend'))
@@ -33,9 +33,12 @@ from config import DATA_DIR
 
 
 # Kaggle dataset identifiers (multi-disease)
-# Primary: COVID-19 Radiography Database (4 classes)
+# Primary: COVID-19 Radiography Database (3 classes: COVID, Normal, Pneumonia)
 KAGGLE_DATASET = "tawsifurrahman/covid19-radiography-database"
 DATASET_URL = "https://www.kaggle.com/datasets/tawsifurrahman/covid19-radiography-database"
+
+# Supplementary: Tuberculosis dataset
+KAGGLE_TB_DATASET = "tawsifurrahman/tuberculosis-tb-chest-xray-dataset"
 
 # Alternative datasets:
 # - "paultimothymooney/chest-xray-pneumonia" (2-class: Normal, Pneumonia)
@@ -156,7 +159,23 @@ def _try_kaggle_api():
             path=download_dir,
             unzip=True
         )
-        print("  ✓ Download complete!")
+        print("  ✓ COVID/Normal/Pneumonia dataset downloaded!")
+
+        # Also download Tuberculosis dataset
+        print("  Downloading Tuberculosis dataset...")
+        tb_dir = os.path.join(download_dir, "_tb")
+        os.makedirs(tb_dir, exist_ok=True)
+        try:
+            api.dataset_download_files(
+                KAGGLE_TB_DATASET,
+                path=tb_dir,
+                unzip=True
+            )
+            print("  ✓ Tuberculosis dataset downloaded!")
+        except Exception as e:
+            print(f"  ⚠️  TB dataset download failed: {e}")
+            print("      You can add TB data manually to data/raw/train/Tuberculosis/")
+
         return True
 
     except Exception as e:
@@ -209,7 +228,8 @@ def _organize_dataset():
     # Strategy 1: COVID-19 Radiography Database format
     # Has folders: COVID/images/, Normal/images/, Lung_Opacity/images/, Viral Pneumonia/images/
     covid_classes = {'COVID': 'COVID', 'Normal': 'Normal',
-                     'Lung_Opacity': 'Pneumonia', 'Viral Pneumonia': 'Pneumonia'}
+                     'Lung_Opacity': 'Pneumonia', 'Viral Pneumonia': 'Pneumonia',
+                     'Tuberculosis': 'Tuberculosis'}
 
     found_covid_format = False
     for root, dirs, files in os.walk(download_dir):
@@ -221,6 +241,12 @@ def _organize_dataset():
     if found_covid_format:
         print("  Detected: COVID-19 Radiography Database format")
         _organize_covid_format(source_dir, covid_classes)
+
+        # Also organize TB data if downloaded separately
+        tb_dir = os.path.join(download_dir, "_tb")
+        if os.path.isdir(tb_dir):
+            _organize_tb_data(tb_dir)
+
         _cleanup(download_dir)
         return
 
@@ -315,6 +341,42 @@ def _organize_covid_format(source_dir, class_mapping):
               f"{len(train_imgs)} train + {len(val_imgs)} val")
 
     print("  ✓ Dataset organized (80/20 train/val split)")
+
+
+def _organize_tb_data(tb_dir):
+    """
+    Organize Tuberculosis dataset into train/val structure.
+
+    The TB dataset may have various structures — we find all images
+    in TB-positive folders and organize them.
+    """
+    import random
+    random.seed(42)
+
+    # Find TB images (look for folders named Tuberculosis, TB, etc.)
+    tb_images = []
+    for root, dirs, files in os.walk(tb_dir):
+        for f in files:
+            if f.lower().endswith(('.png', '.jpg', '.jpeg')):
+                tb_images.append(os.path.join(root, f))
+
+    if not tb_images:
+        return
+
+    random.shuffle(tb_images)
+    split_idx = int(len(tb_images) * 0.8)
+    train_imgs = tb_images[:split_idx]
+    val_imgs = tb_images[split_idx:]
+
+    for split_name, img_list in [("train", train_imgs), ("val", val_imgs)]:
+        dest_dir = os.path.join(DATA_DIR, "raw", split_name, "Tuberculosis")
+        os.makedirs(dest_dir, exist_ok=True)
+        for img_path in img_list:
+            dst = os.path.join(dest_dir, os.path.basename(img_path))
+            if not os.path.exists(dst):
+                shutil.copy2(img_path, dst)
+
+    print(f"    Tuberculosis: {len(train_imgs)} train + {len(val_imgs)} val")
 
 
 def _cleanup(download_dir):

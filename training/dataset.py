@@ -27,7 +27,7 @@ from collections import Counter
 
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'backend'))
-from config import DATA_DIR, BATCH_SIZE, NUM_WORKERS, DEVICE
+from config import DATA_DIR, BATCH_SIZE, NUM_WORKERS, NUM_CLASSES
 
 from transforms import get_train_transforms, get_val_transforms
 
@@ -180,7 +180,7 @@ def compute_class_weights(data_dir=None):
     if not os.path.isdir(data_dir):
         # Return uniform weights if no data
         print("  ⚠️  No training data found, using uniform class weights")
-        return torch.ones(2)
+        return torch.ones(NUM_CLASSES)
 
     # Count samples per class
     dataset = datasets.ImageFolder(root=data_dir)

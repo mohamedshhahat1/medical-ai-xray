@@ -87,32 +87,43 @@ def evaluate_model(model_path=MODEL_PATH):
     print(f"{'─' * 60}")
     print("  CONFUSION MATRIX")
     print(f"{'─' * 60}")
-    print(f"  {'':>12} {'Pred Normal':>12} {'Pred Pneumonia':>15}")
-    print(f"  {'True Normal':>12} {cm[0][0]:>12} {cm[0][1]:>15}")
-    print(f"  {'True Pneum.':>12} {cm[1][0]:>12} {cm[1][1]:>15}")
 
-    # Medical metrics
-    if len(class_names) == 2:
-        tn, fp, fn, tp = cm.ravel()
+    # Dynamic display for any number of classes
+    header = f"  {'':>12}" + "".join(f"{'Pred '+c:>14}" for c in class_names)
+    print(header)
+    for i, cls in enumerate(class_names):
+        row = f"  {'True '+cls:>12}"
+        for j in range(len(class_names)):
+            row += f"{cm[i][j]:>14}"
+        print(row)
+
+    # Per-class medical metrics (one-vs-rest)
+    print(f"\n{'─' * 60}")
+    print("  PER-CLASS MEDICAL METRICS (One-vs-Rest)")
+    print(f"{'─' * 60}")
+    print(f"  {'Class':<14} {'Sensitivity':>12} {'Specificity':>12} {'PPV':>8} {'NPV':>8}")
+    print(f"  {'─'*14} {'─'*12} {'─'*12} {'─'*8} {'─'*8}")
+
+    for i, cls in enumerate(class_names):
+        # One-vs-rest: class i is "positive", all others are "negative"
+        tp = cm[i][i]
+        fn = cm[i].sum() - tp
+        fp = cm[:, i].sum() - tp
+        tn = cm.sum() - tp - fn - fp
+
         sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
         ppv = tp / (tp + fp) if (tp + fp) > 0 else 0
         npv = tn / (tn + fn) if (tn + fn) > 0 else 0
 
-        print(f"\n{'─' * 60}")
-        print("  MEDICAL METRICS")
-        print(f"{'─' * 60}")
-        print(f"  Sensitivity (Recall):     {sensitivity:.4f}")
-        print(f"  Specificity:              {specificity:.4f}")
-        print(f"  PPV (Precision):          {ppv:.4f}")
-        print(f"  NPV:                      {npv:.4f}")
+        print(f"  {cls:<14} {sensitivity:>12.4f} {specificity:>12.4f} {ppv:>8.4f} {npv:>8.4f}")
 
-        # AUC-ROC
-        try:
-            auc = roc_auc_score(all_labels, all_probs[:, 1])
-            print(f"  AUC-ROC:                  {auc:.4f}")
-        except Exception:
-            pass
+    # Multi-class AUC-ROC (one-vs-rest)
+    try:
+        auc = roc_auc_score(all_labels, all_probs, multi_class='ovr', average='macro')
+        print(f"\n  Macro AUC-ROC (one-vs-rest): {auc:.4f}")
+    except Exception:
+        pass
 
     print(f"\n{'=' * 60}")
 

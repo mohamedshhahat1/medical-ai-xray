@@ -13,9 +13,13 @@ client = TestClient(app)
 def test_root_endpoint():
     response = client.get("/")
     assert response.status_code == 200
-    data = response.json()
-    assert "name" in data
-    assert "Medical AI" in data["name"]
+    # Root serves HTML (Web UI) when index.html exists
+    content_type = response.headers.get("content-type", "")
+    if "html" in content_type:
+        assert "Medical AI" in response.text
+    else:
+        data = response.json()
+        assert "name" in data
     print("✓ Root endpoint works")
 
 
